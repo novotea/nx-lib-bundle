@@ -1,0 +1,29 @@
+{
+    "version": "1.0.0",
+    "name": "@novotea/nx-lib-bundle",
+    "description": "Bundler for nx libraries",
+    "main": "dist/index.js",
+    "bin": {
+        "nx-lib-bundle": "dist/index.js"
+    },
+    "scripts": {
+        "prepublish": "npm run clean && npm run build",
+        "build": "tsc",
+        "clean": "rimraf dist"
+    },
+    "devDependencies": {
+        "@types/node": "^13.13.0",
+        "@types/uglify-js": "^3.9.0",
+        "rimraf": "^3.0.2",
+        "tslib": "^1.11.1",
+        "typescript": "^3.8.3",
+        "uglify-js": "^3.9.1"
+    },
+    "author": "Jan Vanhercke",
+    "license": "ISC",
+    "dependencies": {
+        "@rollup/plugin-typescript": "^4.1.1",
+        "rollup": "^2.6.1",
+        "commander": "^5.0.0"
+    }
+}
