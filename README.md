@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.com/novotea/nx-lib-bundle.svg?token=vpX2zPATzHqVurs5axQZ&branch=master)](https://travis-ci.com/novotea/nx-lib-bundle)
+
 # @novotea/nx-lib-bundle
 
 ## What is nx-lib-bundle
