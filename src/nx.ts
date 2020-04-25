@@ -24,6 +24,14 @@ function copyEntries(output: any, input: any, key: string) {
         }
 }
 
+export interface Dependency {
+
+    type: string;
+
+    version: string;
+
+}
+
 export class Nx {
 
     scope: string;
@@ -36,7 +44,7 @@ export class Nx {
 
     workspace: any;
 
-    dependencies: any = {};
+    dependencies: { [key: string]: Dependency } = {};
 
     projects: string[] = [];
 
@@ -58,7 +66,10 @@ export class Nx {
                 for (let key in this.workspace['projects']) {
                     if (this.workspace.projects[key]['projectType'] === 'library') {
                         this.projects.push(key);
-                        this.dependencies[`@${this.scope}/${key}`] = ['dependencies', this.package.version];
+                        this.dependencies[`@${this.scope}/${key}`] = {
+                            type: 'dependencies',
+                            version: this.package.version
+                        }
                     }
                 }
 
@@ -85,7 +96,14 @@ export class Nx {
     }
 
     bundle(name: string) {
-        const project = new Project(this, name);
+        const project = new Project({
+            name,
+            scope: this.scope,
+            dir: `libs/${name}`,
+            fullName: `@${this.scope}/${name}`,
+            version: this.package.version as string,
+            dependency: name => this.dependency(name)
+        });
 
         project.bundle().then(() => {
             project.write(this.output);
