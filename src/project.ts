@@ -5,6 +5,7 @@ import * as typescript from '@rollup/plugin-typescript';
 import * as uglifyjs from "uglify-js";
 
 import { Dependency } from "./dependency";
+import { collapseTextChangeRangesAcrossMultipleVersions } from 'typescript';
 
 function ensurefile(dir: string, ...segments: string[]) {
     const file = path.resolve(dir, ...segments);
@@ -41,22 +42,30 @@ interface Bundle {
 
     minify?: uglifyjs.MinifyOutput;
 
+    warnings: string[];
+
 }
 
 type BundleEmitter = (name: string, content: string | Uint8Array) => void;
+
+type ProgressOutput = (...message: string[]) => void;
 
 export class Project {
 
     constructor(public options: ProjectOptions) {
     }
 
-    async bundle(dir: string) {
-        await this.bundleES5(dir);
-        await this.bundleES2015(dir);
+    async bundle(dir: string, progress: ProgressOutput) {
+        const warnings:string[] = [];
+
+        (await this.bundleES5(dir, progress)).forEach(w => warnings.push(`ES5 build: ${w}`));
+        (await this.bundleES2015(dir, progress)).forEach(w => warnings.push(`ES215 build: ${w}`));
+
+        return warnings;
     }
 
-    private async bundleES5(dir: string) {
-        let es5 = await this.build("es5", "umd", true);
+    private async bundleES5(dir: string, progress: ProgressOutput) {
+        let es5 = await this.build(progress, "es5", "umd", true);
 
         this.emitter(emitter => {
 
@@ -64,7 +73,7 @@ export class Project {
 
             this.emitMinify(es5, this.options.name + '.umd', emitter);
 
-        }, dir, this.options.scope, this.options.name, 'bundles');
+        }, progress, dir, this.options.scope, this.options.name, 'bundles');
 
         this.emitter((emitter, dir) => {
 
@@ -93,26 +102,30 @@ export class Project {
 
             emitter("package.json", JSON.stringify(pkg, null, 2))
 
-        }, dir, this.options.scope, this.options.name);
+        }, progress, dir, this.options.scope, this.options.name);
+
+        return es5.warnings;
     }
 
-    private async bundleES2015(dir: string) {
-        let es2015 = await this.build("es2015", "es");
+    private async bundleES2015(dir: string, progress: ProgressOutput) {
+        let es2015 = await this.build(progress, "es2015", "es");
 
         this.emitter(emitter => {
 
             this.emitChunk(es2015, this.options.name, emitter);
 
-        }, dir, this.options.scope, this.options.name, 'fesm2015')
+        }, progress, dir, this.options.scope, this.options.name, 'fesm2015')
+
+        return es2015.warnings;
     }
 
-    private emitter(action: (emitter: BundleEmitter, dir: string) => void, base: string, ...segments: string[]) {
+    private emitter(action: (emitter: BundleEmitter, dir: string) => void, progress: ProgressOutput, base: string, ...segments: string[]) {
         let dir = path.resolve(base, ...segments);
 
         let emitter: BundleEmitter = (name, content) => {
             let file = ensurefile(dir, name);
 
-            console.log("Writing", path.relative(base, file));
+            progress("Writing", path.relative(base, file));
 
             fs.writeFileSync(file, content, { encoding: 'utf-8' });
         }
@@ -120,15 +133,18 @@ export class Project {
         action(emitter, dir);
     }
 
-    private async build(target: string, format: "es" | "umd", minify = false): Promise<Bundle> {
+    private async build(progress: ProgressOutput, target: string, format: "es" | "umd", minify = false): Promise<Bundle> {
 
-        console.log("Bundling", this.options.fullName, "for target", target, "and format", format);
+        let warnings: rollup.RollupWarning[] = [];
+
+        progress("Bundling", this.options.fullName, "for target", target, "and format", format);
 
         let rollupInput = await rollup.rollup({
             input: path.resolve(this.options.dir, this.options.srcpath, this.options.input),
             external: function (id) {
                 return !(id.startsWith('.') || id.startsWith('/') || id == ('\0typescript-helpers'));
             },
+            onwarn: (warning) => warnings.push(warning),
             plugins: [(typescript as any)({
                 target,
                 outDir: `.`,
@@ -140,7 +156,7 @@ export class Project {
             })]
         });
 
-        console.log("Generating code for ", this.options.fullName, "for target", target, "and format", format);
+        progress("Generating code for ", this.options.fullName, "for target", target, "and format", format);
 
         let rollupOutput = await rollupInput.generate({
             format,
@@ -166,7 +182,7 @@ export class Project {
                     map.sources = map.sources.map(file => this.options.fullName + '/' + path.relative(this.options.dir, file));
 
                     if (minify) {
-                        console.log("Minifying ", this.options.fullName);
+                        progress("Minifying ", this.options.fullName);
 
                         minifyOutput = uglifyjs.minify(asset.code, {
                             sourceMap: {
@@ -192,7 +208,8 @@ export class Project {
         return {
             rollup: rollupOutput,
             imports,
-            minify: minifyOutput
+            minify: minifyOutput,
+            warnings: warnings.map(m => m.toString())
         };
     }
 

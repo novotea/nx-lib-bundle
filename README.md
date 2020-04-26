@@ -14,7 +14,7 @@ Upon execution `nx-lib-bundle` will performs the following tasks:
 * Build node package files in `dist` with the npmScope and project name
 * Use the version number of `package.json`
 * Build flattenend ES5 and ES2015 versions of the projects in UMD and ES
-  formats with sourcemaps included.
+  formats with sourcemaps included
 * The UMD format also contains a minified version
 * Create typings for these projects
 * Setup the corresponding package.json and set dependencies. The versions for these  

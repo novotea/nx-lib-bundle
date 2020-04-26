@@ -1,6 +1,7 @@
 import { Project } from './project';
 import * as path from "path";
 import * as fs from "fs";
+import * as cliProgress from "cli-progress";
 import { Dependency } from './dependency';
 
 function hasFiles(dir: string, ...names: string[]) {
@@ -91,11 +92,18 @@ export class Nx {
     async bundle(...names: string[]) {
 
         for (let name of names) {
+            const fullName = `${this.scope}/${name}`;
+
+            const bar = new cliProgress.SingleBar({
+                format: `${fullName}: {message}`,
+                fps: 25
+            }, cliProgress.Presets.shades_classic);
+
             const project = new Project({
                 name,
                 scope: this.scope,
                 dir: `libs/${name}`,
-                fullName: `${this.scope}/${name}`,
+                fullName,
                 version: this.package.version as string,
                 dependency: name => this.dependency(name),
                 tsconfig: 'tsconfig.lib.json',
@@ -103,7 +111,28 @@ export class Nx {
                 input: 'index.ts'
             });
 
-            await project.bundle(this.output);
+            bar.start(0, 0, {
+                message: 'Starting'
+            });
+
+            let n = 1;
+
+            const warnings = await project.bundle(this.output, (...message) => {
+                bar.update(n++, {
+                    message: message.join(' ')
+                });
+            });
+
+            bar.update(n, {
+                message: 'Done'
+            });
+
+            bar.stop();
+
+            if(warnings.length !== 0) {
+                console.log(`${warnings.length} warning(s):`);
+                warnings.forEach(w => console.log("  ", w));
+            }
         }
     }
 
