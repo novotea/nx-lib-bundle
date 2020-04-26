@@ -16,9 +16,14 @@ yargs
         },
     })
     // tslint:disable-next-line:no-empty
-    .command('all', 'build all nx workspace libraries', ()=>{}, (argv) => {
-        return new Nx(argv.output).bundleAll();
-    })
+    .command(
+        'all',
+        'build all nx workspace libraries',
+        () => {},
+        (argv) => {
+            return new Nx(argv.output).bundleAll();
+        },
+    )
     .command(
         'bundle <projects...>',
         'Bundle multiple nx workspace libraries',
