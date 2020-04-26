@@ -46,15 +46,3 @@ Options:
   --version     Show version number                                    [boolean]
   --help        Show help                                              [boolean]
 ```
-
-## How to create a bundle of all your library projects
-
-```
-npx nx-lib-bundle all
-```
-
-## How to bundle a specific project
-
-```
-npx nx-lib-bundle bundle <project>
-```
