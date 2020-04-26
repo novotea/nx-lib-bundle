@@ -3,6 +3,7 @@
 import * as yargs from 'yargs';
 import { Nx } from './nx';
 
+// tslint:disable-next-line:no-unused-expression
 yargs
     .scriptName('nx-lib-bundle')
     .options({
@@ -14,11 +15,11 @@ yargs
             default: 'dist'
         }
     })
-    .command('all', 'build all nx workspace libraries', (yargs) => { }, (argv) => {
+    .command('all', 'build all nx workspace libraries', undefined, (argv) => {
         return new Nx(argv.output).bundleAll();
     })
-    .command('bundle <projects...>', 'Bundle multiple nx workspace libraries', (yargs) => {
-        yargs.positional('projects', {
+    .command('bundle <projects...>', 'Bundle multiple nx workspace libraries', (cargs) => {
+        cargs.positional('projects', {
             describe: 'name of the project',
         });
     }, (argv) => {

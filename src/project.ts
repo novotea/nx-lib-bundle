@@ -1,11 +1,10 @@
-import * as path from "path";
-import * as fs from "fs";
-import * as rollup from "rollup";
 import * as typescript from '@rollup/plugin-typescript';
+import * as fs from "fs";
+import * as path from "path";
+import * as rollup from "rollup";
 import * as uglifyjs from "uglify-js";
 
 import { Dependency } from "./dependency";
-import { collapseTextChangeRangesAcrossMultipleVersions } from 'typescript';
 
 function ensurefile(dir: string, ...segments: string[]) {
     const file = path.resolve(dir, ...segments);
@@ -55,7 +54,7 @@ export class Project {
     constructor(public options: ProjectOptions) {
     }
 
-    async bundle(dir: string, progress: ProgressOutput) {
+    public async bundle(dir: string, progress: ProgressOutput) {
         const warnings:string[] = [];
 
         (await this.bundleES5(dir, progress)).forEach(w => warnings.push(`ES5 build: ${w}`));
@@ -65,7 +64,7 @@ export class Project {
     }
 
     private async bundleES5(dir: string, progress: ProgressOutput) {
-        let es5 = await this.build(progress, "es5", "umd", true);
+        const es5 = await this.build(progress, "es5", "umd", true);
 
         this.emitter(emitter => {
 
@@ -75,16 +74,16 @@ export class Project {
 
         }, progress, dir, this.options.scope, this.options.name, 'bundles');
 
-        this.emitter((emitter, dir) => {
+        this.emitter((emitter, ref) => {
 
             this.emitTypings(es5, emitter);
 
             const pkg: any = {
-                name: this.options.fullName,
-                version: this.options.version,
-                main: `bundles/${this.options.name}.umd.js`,
                 fesm2015: `fesm2015/${this.options.name}.js`,
+                main: `bundles/${this.options.name}.umd.js`,
+                name: this.options.fullName,
                 typings: 'index.d.ts',
+                version: this.options.version
             };
 
             es5.imports?.forEach(name => {
@@ -93,8 +92,9 @@ export class Project {
                 if (dependency != null) {
                     let map = pkg[dependency.type];
 
-                    if (map == null)
+                    if (map == null) {
                         pkg[dependency.type] = map = {};
+                    }
 
                     map[name] = dependency.version;
                 }
@@ -108,7 +108,7 @@ export class Project {
     }
 
     private async bundleES2015(dir: string, progress: ProgressOutput) {
-        let es2015 = await this.build(progress, "es2015", "es");
+        const es2015 = await this.build(progress, "es2015", "es");
 
         this.emitter(emitter => {
 
@@ -120,10 +120,10 @@ export class Project {
     }
 
     private emitter(action: (emitter: BundleEmitter, dir: string) => void, progress: ProgressOutput, base: string, ...segments: string[]) {
-        let dir = path.resolve(base, ...segments);
+        const dir = path.resolve(base, ...segments);
 
-        let emitter: BundleEmitter = (name, content) => {
-            let file = ensurefile(dir, name);
+        const emitter: BundleEmitter = (name, content) => {
+            const file = ensurefile(dir, name);
 
             progress("Writing", path.relative(base, file));
 
@@ -135,42 +135,42 @@ export class Project {
 
     private async build(progress: ProgressOutput, target: string, format: "es" | "umd", minify = false): Promise<Bundle> {
 
-        let warnings: rollup.RollupWarning[] = [];
+        const warnings: rollup.RollupWarning[] = [];
 
         progress("Bundling", this.options.fullName, "for target", target, "and format", format);
 
-        let rollupInput = await rollup.rollup({
-            input: path.resolve(this.options.dir, this.options.srcpath, this.options.input),
-            external: function (id) {
-                return !(id.startsWith('.') || id.startsWith('/') || id == ('\0typescript-helpers'));
+        const rollupInput = await rollup.rollup({
+            external: (id) => {
+                return !(id.startsWith('.') || id.startsWith('/') || id === ('\0typescript-helpers'));
             },
+            input: path.resolve(this.options.dir, this.options.srcpath, this.options.input),
             onwarn: (warning) => warnings.push(warning),
             plugins: [(typescript as any)({
-                target,
-                outDir: `.`,
-                inlineSources: true,
-                inlineSourceMap: true,
                 declaration: true,
                 declarationMap: true,
+                inlineSourceMap: true,
+                inlineSources: true,
+                outDir: `.`,
+                target,
                 tsconfig: path.resolve(this.options.dir, this.options.tsconfig)
             })]
         });
 
         progress("Generating code for ", this.options.fullName, "for target", target, "and format", format);
 
-        let rollupOutput = await rollupInput.generate({
-            format,
-            name: this.options.fullName,
-            sourcemap: true,
+        const rollupOutput = await rollupInput.generate({
             dir: '.',
-            globals: id => id
+            format,
+            globals: id => id,
+            name: this.options.fullName,
+            sourcemap: true
         });
 
         let imports: string[] = [];
 
-        let minifyOutput = undefined;
+        let minifyOutput;
 
-        let srcpath = path.resolve(this.options.dir, this.options.srcpath);
+        const srcpath = path.resolve(this.options.dir, this.options.srcpath);
 
         for (const asset of rollupOutput.output) {
             if (asset.type === 'chunk') {
@@ -187,12 +187,12 @@ export class Project {
                         minifyOutput = uglifyjs.minify(asset.code, {
                             sourceMap: {
                                 content: {
+                                    file: map.file,
                                     mappings: map.mappings,
                                     names: map.names,
                                     sources: map.sources,
-                                    version: map.version.toString(),
-                                    file: map.file,
-                                    sourcesContent: map.sourcesContent
+                                    sourcesContent: map.sourcesContent,
+                                    version: map.version.toString()
                                 }
                             }
                         });
@@ -206,15 +206,15 @@ export class Project {
         }
 
         return {
-            rollup: rollupOutput,
             imports,
             minify: minifyOutput,
+            rollup: rollupOutput,
             warnings: warnings.map(m => m.toString())
         };
     }
 
     private emitChunk(bundle: Bundle, name: string, emitter: BundleEmitter) {
-        for (let output of bundle.rollup.output) {
+        for (const output of bundle.rollup.output) {
             if (output.type === 'chunk') {
                 const mapname = `${name}.js.map`;
                 const ref = `\n//# sourceMappingURL=${mapname}`;
@@ -234,9 +234,10 @@ export class Project {
     }
 
     private emitTypings(bundle: Bundle, emitter: BundleEmitter) {
-        for (let output of bundle.rollup.output) {
-            if (output.type === 'asset')
+        for (const output of bundle.rollup.output) {
+            if (output.type === 'asset') {
                 emitter(output.fileName, output.source);
+            }
         }
     }
 }

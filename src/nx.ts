@@ -1,12 +1,16 @@
 import { Project } from './project';
-import * as path from "path";
-import * as fs from "fs";
+
 import * as cliProgress from "cli-progress";
+import * as fs from "fs";
+import * as path from "path";
+
 import { Dependency } from './dependency';
+
+// tslint:disable:no-console
 
 function hasFiles(dir: string, ...names: string[]) {
     for (const name of names) {
-        let file = path.resolve(dir, name);
+        const file = path.resolve(dir, name);
 
         if (!fs.existsSync(file)) {
             return false;
@@ -18,29 +22,30 @@ function hasFiles(dir: string, ...names: string[]) {
 
 function copyEntries(output: any, input: any, key: string) {
 
-    let map = input[key];
+    const map = input[key];
 
-    if (map != null)
-        for (const idx in map) {
+    if (map != null) {
+        for (const idx of map) {
             output[idx] = [key, map[idx]];
         }
+    }
 }
 
 export class Nx {
 
-    scope: string;
+    public scope: string;
 
-    baseDir: string;
+    public baseDir: string;
 
-    package: any;
+    public package: any;
 
-    nx: any;
+    public nx: any;
 
-    workspace: any;
+    public workspace: any;
 
-    dependencies: { [key: string]: Dependency } = {};
+    public dependencies: { [key: string]: Dependency } = {};
 
-    projects: string[] = [];
+    public projects: string[] = [];
 
     constructor(public output: string) {
         let dir = process.cwd();
@@ -57,8 +62,8 @@ export class Nx {
                 copyEntries(this.dependencies, this.package, 'devDependencies');
                 copyEntries(this.dependencies, this.package, 'dependencies');
 
-                for (let key in this.workspace['projects']) {
-                    if (this.workspace.projects[key]['projectType'] === 'library') {
+                for (const key in this.workspace.projects) {
+                    if (this.workspace.projects[key].projectType === 'library') {
                         this.projects.push(key);
                         this.dependencies[`${this.scope}/${key}`] = {
                             type: 'dependencies',
@@ -70,28 +75,23 @@ export class Nx {
                 return;
             }
 
-            let parent = path.resolve(dir, "..");
+            const parent = path.resolve(dir, "..");
 
-            if (parent == dir)
+            if (parent === dir) {
                 throw new Error("No valid nx workspace found");
+            }
 
             dir = parent;
         }
     }
 
-    readJSON(dir: string) {
-        const file = path.resolve(this.baseDir, dir);
-        const json = fs.readFileSync(file, "utf-8");
-        return JSON.parse(json);
-    }
-
-    async bundleAll() {
+    public async bundleAll() {
         return this.bundle(...this.projects);
     }
 
-    async bundle(...names: string[]) {
+    public async bundle(...names: string[]) {
 
-        for (let name of names) {
+        for (const name of names) {
             const fullName = `${this.scope}/${name}`;
 
             const bar = new cliProgress.SingleBar({
@@ -100,15 +100,15 @@ export class Nx {
             }, cliProgress.Presets.shades_classic);
 
             const project = new Project({
-                name,
-                scope: this.scope,
+                dependency: dep => this.dependency(dep),
                 dir: `libs/${name}`,
                 fullName,
-                version: this.package.version as string,
-                dependency: name => this.dependency(name),
-                tsconfig: 'tsconfig.lib.json',
+                input: 'index.ts',
+                name,
+                scope: this.scope,
                 srcpath: 'src',
-                input: 'index.ts'
+                tsconfig: 'tsconfig.lib.json',
+                version: this.package.version as string
             });
 
             bar.start(0, 0, {
@@ -129,14 +129,21 @@ export class Nx {
 
             bar.stop();
 
-            if(warnings.length !== 0) {
+            if (warnings.length !== 0) {
                 console.log(`${warnings.length} warning(s):`);
                 warnings.forEach(w => console.log("  ", w));
             }
         }
     }
 
-    dependency(name: string) {
+    public dependency(name: string) {
         return this.dependencies[name];
     }
+
+    private readJSON(dir: string) {
+        const file = path.resolve(this.baseDir, dir);
+        const json = fs.readFileSync(file, "utf-8");
+        return JSON.parse(json);
+    }
+
 }
