@@ -15,7 +15,8 @@ yargs
             type: 'string',
         },
     })
-    .command('all', 'build all nx workspace libraries', undefined, (argv) => {
+    // tslint:disable-next-line:no-empty
+    .command('all', 'build all nx workspace libraries', ()=>{}, (argv) => {
         return new Nx(argv.output).bundleAll();
     })
     .command(
