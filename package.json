@@ -1,52 +1,59 @@
 {
-  "version": "1.0.0",
-  "name": "@novotea/nx-lib-bundle",
-  "description": "Bundler for nx libraries",
-  "main": "dist/index.js",
-  "bin": {
-    "nx-lib-bundle": "dist/index.js"
-  },
-  "contributes": {
-    "name": "Jan Vanhercke",
-    "url": "https://github.com/jvanhercke"
-  },
-  "scripts": {
-    "prepublish": "npm run clean && npm run build",
-    "build": "tsc",
-    "clean": "rimraf dist",
-    "format": "prettier --write \"src/**/*.ts\"",
-    "lint": "tslint -p tsconfig.json"
-  },
-  "devDependencies": {
-    "@types/node": "^13.13.0",
-    "@types/uglify-js": "^3.9.0",
-    "@types/yargs": "^15.0.4",
-    "prettier": "^2.0.5",
-    "rimraf": "^3.0.2",
-    "tslib": "^1.11.1",
-    "tslint": "^6.1.1",
-    "tslint-config-prettier": "^1.18.0",
-    "typescript": "^3.8.3"
-  },
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/novotea/nx-lib-bundle.git"
-  },
-  "homepage": "https://github.com/novotea/nx-lib-bundle",
-  "author": "Jan Vanhercke",
-  "keywords": [
-    "typescript",
-    "package",
-    "bundle",
-    "build"
-  ],
-  "license": "ISC",
-  "dependencies": {
-    "@rollup/plugin-typescript": "^4.1.1",
-    "@types/cli-progress": "^3.4.2",
-    "cli-progress": "^3.8.0",
-    "rollup": "^2.6.1",
-    "uglify-js": "^3.9.1",
-    "yargs": "^15.3.1"
-  }
+    "version": "1.0.0",
+    "name": "@novotea/nx-lib-bundle",
+    "description": "Bundler for nx libraries",
+    "main": "dist/index.js",
+    "bin": {
+        "nx-lib-bundle": "dist/index.js"
+    },
+    "contributes": {
+        "name": "Jan Vanhercke",
+        "url": "https://github.com/jvanhercke"
+    },
+    "files": [
+        "dist/**/*"
+    ],
+    "scripts": {
+        "build": "tsc",
+        "clean": "rimraf dist",
+        "format": "prettier --write \"src/**/*.ts\"",
+        "lint": "tslint -p tsconfig.json",
+        "prepare": "npm rum clean && npm run build",
+        "prepublishOnly": "npm run lint",
+        "preversion": "npm run lint",
+        "version" : "npm run format && git add -A src",
+        "postversion" : "git push && git push --tags"
+    },
+    "devDependencies": {
+        "@types/node": "^13.13.0",
+        "@types/uglify-js": "^3.9.0",
+        "@types/yargs": "^15.0.4",
+        "prettier": "^2.0.5",
+        "rimraf": "^3.0.2",
+        "tslib": "^1.11.1",
+        "tslint": "^6.1.1",
+        "tslint-config-prettier": "^1.18.0",
+        "typescript": "^3.8.3"
+    },
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/novotea/nx-lib-bundle.git"
+    },
+    "homepage": "https://github.com/novotea/nx-lib-bundle",
+    "author": "Jan Vanhercke",
+    "keywords": [
+        "typescript",
+        "package",
+        "bundle",
+        "build"
+    ],
+    "license": "ISC",
+    "dependencies": {
+        "@rollup/plugin-typescript": "^4.1.1",
+        "@types/cli-progress": "^3.4.2",
+        "cli-progress": "^3.8.0",
+        "rollup": "^2.6.1",
+        "uglify-js": "^3.9.1",
+        "yargs": "^15.3.1"
+    }
 }
