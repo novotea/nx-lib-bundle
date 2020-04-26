@@ -25,7 +25,7 @@
         "postversion": "git push && git push --tags"
     },
     "devDependencies": {
-        "@types/node": "^13.13.0",
+        "@types/node": "^13.13.3",
         "@types/uglify-js": "^3.9.0",
         "@types/yargs": "^15.0.4",
         "prettier": "^2.0.5",
@@ -51,7 +51,7 @@
         "@rollup/plugin-typescript": "^4.1.1",
         "@types/cli-progress": "^3.4.2",
         "cli-progress": "^3.8.0",
-        "rollup": "^2.6.1",
+        "rollup": "^2.7.2",
         "tslib": "^1.11.1",
         "uglify-js": "^3.9.1",
         "yargs": "^15.3.1"

@@ -3,6 +3,7 @@
 import * as yargs from 'yargs';
 import { Nx } from './nx';
 
+// tslint:disable: no-empty
 // tslint:disable-next-line:no-unused-expression
 yargs
     .scriptName('nx-lib-bundle')
@@ -15,7 +16,6 @@ yargs
             type: 'string',
         },
     })
-    // tslint:disable-next-line:no-empty
     .command(
         'all',
         'build all nx workspace libraries',
@@ -37,7 +37,7 @@ yargs
         },
     )
     .usage('$0 <cmd> [args]')
-    .version('1.0.0')
+    .version('1.0.1')
     .help()
     .demandCommand()
     .strict().argv;
