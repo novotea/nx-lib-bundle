@@ -1,6 +1,7 @@
 import { Project } from './project';
 import * as path from "path";
 import * as fs from "fs";
+import { Dependency } from './dependency';
 
 function hasFiles(dir: string, ...names: string[]) {
     for (const name of names) {
@@ -22,14 +23,6 @@ function copyEntries(output: any, input: any, key: string) {
         for (const idx in map) {
             output[idx] = [key, map[idx]];
         }
-}
-
-export interface Dependency {
-
-    type: string;
-
-    version: string;
-
 }
 
 export class Nx {
@@ -66,7 +59,7 @@ export class Nx {
                 for (let key in this.workspace['projects']) {
                     if (this.workspace.projects[key]['projectType'] === 'library') {
                         this.projects.push(key);
-                        this.dependencies[`@${this.scope}/${key}`] = {
+                        this.dependencies[`${this.scope}/${key}`] = {
                             type: 'dependencies',
                             version: this.package.version
                         }
@@ -91,23 +84,27 @@ export class Nx {
         return JSON.parse(json);
     }
 
-    bundleAll() {
-        return Promise.all(this.projects.map(project => this.bundle(project)));
+    async bundleAll() {
+        return this.bundle(...this.projects);
     }
 
-    bundle(name: string) {
-        const project = new Project({
-            name,
-            scope: this.scope,
-            dir: `libs/${name}`,
-            fullName: `@${this.scope}/${name}`,
-            version: this.package.version as string,
-            dependency: name => this.dependency(name)
-        });
+    async bundle(...names: string[]) {
 
-        project.bundle().then(() => {
-            project.write(this.output);
-        });
+        for (let name of names) {
+            const project = new Project({
+                name,
+                scope: this.scope,
+                dir: `libs/${name}`,
+                fullName: `${this.scope}/${name}`,
+                version: this.package.version as string,
+                dependency: name => this.dependency(name),
+                tsconfig: 'tsconfig.lib.json',
+                srcpath: 'src',
+                input: 'index.ts'
+            });
+
+            await project.bundle(this.output);
+        }
     }
 
     dependency(name: string) {
