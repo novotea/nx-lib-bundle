@@ -1,46 +1,36 @@
 #!/usr/bin/env node
 
-import * as commander from 'commander';
+import * as yargs from 'yargs';
 import { Nx } from './nx';
 
-let output = 'dist';
+yargs
+    .scriptName('nx-lib-bundle')
+    .options({
+        output: {
+            demandOption: false,
+            describe: 'Target directory of the bundle',
+            type: 'string',
+            alias: 'o',
+            default: 'dist'
+        }
+    })
+    .command('all', 'build all nx workspace libraries', (yargs) => { }, (argv) => {
+        new Nx(argv.output).bundleAll();
+    })
+    .command('bundle <projects...>', 'Bundle multiple nx workspace libraries', (yargs) => {
+        yargs.positional('projects', {
+            describe: 'name of the project',
+        });
+    }, (argv) => {
+        let workspace = new Nx(argv.output);
 
-commander
-    .option('-o, --output <directory>', "Output for packages", v => {output=v;});
-
-commander
-    .description("Create bundles from nx lib projects");
-
-commander
-    .command('help')
-    .alias('h')
-    .description('this help')
-    .action(() => {
-        commander.help();
-    });
-
-commander
-    .command('bundle <projects>')
-    .alias('b')
-    .description('Bundle libraries')
-    .action((projects, cmd) => {
-        let workspace = new Nx(output);
-
-        for(const project of cmd.args) {
+        for (const project of argv.projects as string[]) {
             workspace.bundle(project);
         }
-    });
-
-commander
-    .command('all')
-    .alias('a')
-    .description('Bundle all libraries')
-    .action((projects, cmd) => {
-        let workspace = new Nx(output);
-        workspace.bundleAll();
-    });
-
-if (process.argv.length <= 2)
-    commander.help();
-else
-    commander.parse(process.argv);
+    })
+    .usage('$0 <cmd> [args]')
+    .version('1.0.0')
+    .help()
+    .demandCommand()
+    .strict()
+    .argv;

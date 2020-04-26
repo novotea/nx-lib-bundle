@@ -31,22 +31,20 @@ npm i -D @novotea/nx-lib-bundle
 ## Usage
 
 ```
-npx nx-lib-bundle
+npx nx-lib-bundle --help
 ```
 
 ```
-Usage:  [options] [command]
-
-Create bundles from nx lib projects
-
-Options:
-  -o, --output <directory>  Output for packages
-  -h, --help                display help for command
+nx-lib-bundle <cmd> [args]
 
 Commands:
-  help|h                    this help
-  bundle|b <projects>       Bundle libraries
-  all|a                     Bundle all libraries
+  nx-lib-bundle all                   build all nx workspace libraries
+  nx-lib-bundle bundle <projects...>  Bundle multiple nx workspace libraries
+
+Options:
+  --output, -o  Target directory of the bundle        [string] [default: "dist"]
+  --version     Show version number                                    [boolean]
+  --help        Show help                                              [boolean]
 ```
 
 ## How to create a bundle of all your library projects
