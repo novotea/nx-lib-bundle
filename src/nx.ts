@@ -1,8 +1,8 @@
 import { Project } from './project';
 
-import * as cliProgress from "cli-progress";
-import * as fs from "fs";
-import * as path from "path";
+import * as cliProgress from 'cli-progress';
+import * as fs from 'fs';
+import * as path from 'path';
 
 import { Dependency } from './dependency';
 
@@ -21,7 +21,6 @@ function hasFiles(dir: string, ...names: string[]) {
 }
 
 function copyEntries(output: any, input: any, key: string) {
-
     const map = input[key];
 
     if (map != null) {
@@ -32,7 +31,6 @@ function copyEntries(output: any, input: any, key: string) {
 }
 
 export class Nx {
-
     public scope: string;
 
     public baseDir: string;
@@ -50,13 +48,13 @@ export class Nx {
     constructor(public output: string) {
         let dir = process.cwd();
 
-        for (; ;) {
-            if (hasFiles(dir, "workspace.json", "package.json", "nx.json")) {
+        for (;;) {
+            if (hasFiles(dir, 'workspace.json', 'package.json', 'nx.json')) {
                 this.baseDir = dir;
-                this.package = this.readJSON("package.json");
-                this.nx = this.readJSON("nx.json");
-                this.workspace = this.readJSON("workspace.json");
-                this.scope = '@' + this.nx.npmScope as string;
+                this.package = this.readJSON('package.json');
+                this.nx = this.readJSON('nx.json');
+                this.workspace = this.readJSON('workspace.json');
+                this.scope = ('@' + this.nx.npmScope) as string;
 
                 copyEntries(this.dependencies, this.package, 'peerDependencies');
                 copyEntries(this.dependencies, this.package, 'devDependencies');
@@ -67,18 +65,18 @@ export class Nx {
                         this.projects.push(key);
                         this.dependencies[`${this.scope}/${key}`] = {
                             type: 'dependencies',
-                            version: this.package.version
-                        }
+                            version: this.package.version,
+                        };
                     }
                 }
 
                 return;
             }
 
-            const parent = path.resolve(dir, "..");
+            const parent = path.resolve(dir, '..');
 
             if (parent === dir) {
-                throw new Error("No valid nx workspace found");
+                throw new Error('No valid nx workspace found');
             }
 
             dir = parent;
@@ -90,17 +88,19 @@ export class Nx {
     }
 
     public async bundle(...names: string[]) {
-
         for (const name of names) {
             const fullName = `${this.scope}/${name}`;
 
-            const bar = new cliProgress.SingleBar({
-                format: `${fullName}: {message}`,
-                fps: 25
-            }, cliProgress.Presets.shades_classic);
+            const bar = new cliProgress.SingleBar(
+                {
+                    format: `${fullName}: {message}`,
+                    fps: 25,
+                },
+                cliProgress.Presets.shades_classic,
+            );
 
             const project = new Project({
-                dependency: dep => this.dependency(dep),
+                dependency: (dep) => this.dependency(dep),
                 dir: `libs/${name}`,
                 fullName,
                 input: 'index.ts',
@@ -108,30 +108,30 @@ export class Nx {
                 scope: this.scope,
                 srcpath: 'src',
                 tsconfig: 'tsconfig.lib.json',
-                version: this.package.version as string
+                version: this.package.version as string,
             });
 
             bar.start(0, 0, {
-                message: 'Starting'
+                message: 'Starting',
             });
 
             let n = 1;
 
             const warnings = await project.bundle(this.output, (...message) => {
                 bar.update(n++, {
-                    message: message.join(' ')
+                    message: message.join(' '),
                 });
             });
 
             bar.update(n, {
-                message: 'Done'
+                message: 'Done',
             });
 
             bar.stop();
 
             if (warnings.length !== 0) {
                 console.log(`${warnings.length} warning(s):`);
-                warnings.forEach(w => console.log("  ", w));
+                warnings.forEach((w) => console.log('  ', w));
             }
         }
     }
@@ -142,8 +142,7 @@ export class Nx {
 
     private readJSON(dir: string) {
         const file = path.resolve(this.baseDir, dir);
-        const json = fs.readFileSync(file, "utf-8");
+        const json = fs.readFileSync(file, 'utf-8');
         return JSON.parse(json);
     }
-
 }
