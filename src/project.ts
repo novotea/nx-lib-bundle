@@ -7,7 +7,6 @@ import * as uglifyjs from 'uglify-js';
 import { Dependency } from './dependency';
 
 export interface ProjectOptions {
-
     baseDir: string;
 
     dir: string;
@@ -28,14 +27,12 @@ export interface ProjectOptions {
 }
 
 export interface ProjectOutput {
-
     message: (...message: string[]) => void;
 
     warning: (text: string) => void;
 
     emit: (file: string, content: string | Uint8Array) => void;
-
-};
+}
 
 interface Bundle {
     imports: string[];
@@ -46,7 +43,7 @@ interface Bundle {
 }
 
 export class Project {
-    constructor(public options: ProjectOptions) { }
+    constructor(public options: ProjectOptions) {}
 
     // tslint:disable-next-line:no-empty
     public async bundle(output: ProjectOutput) {
@@ -96,12 +93,7 @@ export class Project {
         this.emitChunk(es2015, 'fesm2015', this.options.name, output);
     }
 
-    private async build(
-        output: ProjectOutput,
-        target: string,
-        format: 'es' | 'umd',
-        minify = false,
-    ): Promise<Bundle> {
+    private async build(output: ProjectOutput, target: string, format: 'es' | 'umd', minify = false): Promise<Bundle> {
         output.message('Bundling', this.options.name, 'for target', target, 'and format', format);
 
         const srcpath = path.resolve(this.options.dir, this.options.srcpath);
@@ -146,8 +138,8 @@ export class Project {
 
                     imports = asset.imports;
 
-                    map.sources = map.sources.map(
-                        (file) => path.join(this.options.importName, path.relative(this.options.dir, file))
+                    map.sources = map.sources.map((file) =>
+                        path.join(this.options.importName, path.relative(this.options.dir, file)),
                     );
 
                     if (minify) {
@@ -177,7 +169,7 @@ export class Project {
         return {
             imports,
             minify: minifyOutput,
-            rollup: rollupOutput
+            rollup: rollupOutput,
         };
     }
 
@@ -196,7 +188,7 @@ export class Project {
         if (bundle.minify != null) {
             const mapname = `${name}.min.js.map`;
             const ref = `\n//# sourceMappingURL=${mapname}`;
-            output.emit(path.join(dir,`${name}.min.js`), bundle.minify.code + ref);
+            output.emit(path.join(dir, `${name}.min.js`), bundle.minify.code + ref);
             output.emit(path.join(dir, mapname), JSON.stringify(bundle.minify.map));
         }
     }

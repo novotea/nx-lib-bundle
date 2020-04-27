@@ -54,7 +54,7 @@ export class Nx {
     constructor(public output: string) {
         let dir = process.cwd();
 
-        for (; ;) {
+        for (;;) {
             if (hasFiles(dir, 'workspace.json', 'package.json', 'nx.json')) {
                 this.baseDir = dir;
                 this.package = this.readJSON('package.json');
@@ -125,7 +125,7 @@ export class Nx {
 
             const output = path.resolve(this.baseDir, this.output, this.scope, name);
 
-            const warnings: string[] = []
+            const warnings: string[] = [];
 
             await project.bundle({
                 message: (...text) => {
@@ -141,7 +141,7 @@ export class Nx {
                     file = path.resolve(output, file);
                     ensurefile(file);
                     fs.writeFileSync(file, content, { encoding: 'utf-8' });
-                }
+                },
             });
 
             bar.stop();

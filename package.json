@@ -1,5 +1,5 @@
 {
-    "version": "1.0.1",
+    "version": "1.0.2",
     "name": "@novotea/nx-lib-bundle",
     "description": "Bundler for nx libraries",
     "main": "dist/index.js",
