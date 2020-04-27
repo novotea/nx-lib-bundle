@@ -6,20 +6,15 @@ import * as uglifyjs from 'uglify-js';
 
 import { Dependency } from './dependency';
 
-function ensurefile(dir: string, ...segments: string[]) {
-    const file = path.resolve(dir, ...segments);
-    fs.mkdirSync(path.dirname(file), { recursive: true });
-    return file;
-}
-
 export interface ProjectOptions {
-    dir: string;
 
-    scope: string;
+    baseDir: string;
+
+    dir: string;
 
     name: string;
 
-    fullName: string;
+    importName: string;
 
     version: string;
 
@@ -32,165 +27,117 @@ export interface ProjectOptions {
     dependency: (name: string) => Dependency;
 }
 
+export interface ProjectOutput {
+
+    message: (...message: string[]) => void;
+
+    warning: (text: string) => void;
+
+    emit: (file: string, content: string | Uint8Array) => void;
+
+};
+
 interface Bundle {
     imports: string[];
 
     rollup: rollup.RollupOutput;
 
     minify?: uglifyjs.MinifyOutput;
-
-    warnings: string[];
 }
 
-type BundleEmitter = (name: string, content: string | Uint8Array) => void;
-
-type ProgressOutput = (...message: string[]) => void;
-
 export class Project {
-    constructor(public options: ProjectOptions) {}
+    constructor(public options: ProjectOptions) { }
 
-    public async bundle(dir: string, progress: ProgressOutput) {
+    // tslint:disable-next-line:no-empty
+    public async bundle(output: ProjectOutput) {
         const warnings: string[] = [];
 
-        (await this.bundleES5(dir, progress)).forEach((w) => warnings.push(`ES5 build: ${w}`));
-        (await this.bundleES2015(dir, progress)).forEach((w) => warnings.push(`ES215 build: ${w}`));
+        await this.bundleES5(output);
+        await this.bundleES2015(output);
 
         return warnings;
     }
 
-    private async bundleES5(dir: string, progress: ProgressOutput) {
-        const es5 = await this.build(progress, 'es5', 'umd', true);
+    private async bundleES5(output: ProjectOutput) {
+        const es5 = await this.build(output, 'es5', 'umd', true);
 
-        this.emitter(
-            (emitter) => {
-                this.emitChunk(es5, this.options.name + '.umd', emitter);
+        this.emitChunk(es5, 'bundles', this.options.name + '.umd', output);
+        this.emitMinify(es5, 'bundles', this.options.name + '.umd', output);
+        this.emitAssets(es5, output);
 
-                this.emitMinify(es5, this.options.name + '.umd', emitter);
-            },
-            progress,
-            dir,
-            this.options.scope,
-            this.options.name,
-            'bundles',
-        );
-
-        this.emitter(
-            (emitter, ref) => {
-                this.emitTypings(es5, emitter);
-
-                const pkg: any = {
-                    fesm2015: `fesm2015/${this.options.name}.js`,
-                    main: `bundles/${this.options.name}.umd.js`,
-                    name: this.options.fullName,
-                    typings: 'index.d.ts',
-                    version: this.options.version,
-                };
-
-                es5.imports?.forEach((name) => {
-                    const dependency = this.options.dependency(name);
-
-                    if (dependency != null) {
-                        let map = pkg[dependency.type];
-
-                        if (map == null) {
-                            pkg[dependency.type] = map = {};
-                        }
-
-                        map[name] = dependency.version;
-                    }
-                });
-
-                emitter('package.json', JSON.stringify(pkg, null, 2));
-            },
-            progress,
-            dir,
-            this.options.scope,
-            this.options.name,
-        );
-
-        return es5.warnings;
-    }
-
-    private async bundleES2015(dir: string, progress: ProgressOutput) {
-        const es2015 = await this.build(progress, 'es2015', 'es');
-
-        this.emitter(
-            (emitter) => {
-                this.emitChunk(es2015, this.options.name, emitter);
-            },
-            progress,
-            dir,
-            this.options.scope,
-            this.options.name,
-            'fesm2015',
-        );
-
-        return es2015.warnings;
-    }
-
-    private emitter(
-        action: (emitter: BundleEmitter, dir: string) => void,
-        progress: ProgressOutput,
-        base: string,
-        ...segments: string[]
-    ) {
-        const dir = path.resolve(base, ...segments);
-
-        const emitter: BundleEmitter = (name, content) => {
-            const file = ensurefile(dir, name);
-
-            progress('Writing', path.relative(base, file));
-
-            fs.writeFileSync(file, content, { encoding: 'utf-8' });
+        const pkg: any = {
+            fesm2015: `fesm2015/${this.options.name}.js`,
+            main: `bundles/${this.options.name}.umd.js`,
+            name: this.options.importName,
+            typings: 'index.d.ts',
+            version: this.options.version,
         };
 
-        action(emitter, dir);
+        es5.imports?.forEach((name) => {
+            const dependency = this.options.dependency(name);
+
+            if (dependency != null) {
+                let map = pkg[dependency.type];
+
+                if (map == null) {
+                    pkg[dependency.type] = map = {};
+                }
+
+                map[name] = dependency.version;
+            }
+        });
+
+        output.emit('package.json', JSON.stringify(pkg, null, 2));
+    }
+
+    private async bundleES2015(output: ProjectOutput) {
+        const es2015 = await this.build(output, 'es2015', 'es');
+
+        this.emitChunk(es2015, 'fesm2015', this.options.name, output);
     }
 
     private async build(
-        progress: ProgressOutput,
+        output: ProjectOutput,
         target: string,
         format: 'es' | 'umd',
         minify = false,
     ): Promise<Bundle> {
-        const warnings: rollup.RollupWarning[] = [];
+        output.message('Bundling', this.options.name, 'for target', target, 'and format', format);
 
-        progress('Bundling', this.options.fullName, 'for target', target, 'and format', format);
+        const srcpath = path.resolve(this.options.dir, this.options.srcpath);
 
         const rollupInput = await rollup.rollup({
             external: (id) => {
                 return !(id.startsWith('.') || id.startsWith('/') || id === '\0typescript-helpers');
             },
             input: path.resolve(this.options.dir, this.options.srcpath, this.options.input),
-            onwarn: (warning) => warnings.push(warning),
+            onwarn: (warning) => output.warning(warning.message),
             plugins: [
                 (typescript as any)({
                     declaration: true,
                     declarationMap: true,
                     inlineSourceMap: true,
                     inlineSources: true,
-                    outDir: `.`,
+                    outDir: '.',
                     target,
                     tsconfig: path.resolve(this.options.dir, this.options.tsconfig),
                 }),
             ],
         });
 
-        progress('Generating code for ', this.options.fullName, 'for target', target, 'and format', format);
+        output.message('Generating code for ', this.options.name, 'for target', target, 'and format', format);
 
         const rollupOutput = await rollupInput.generate({
             dir: '.',
             format,
             globals: (id) => id,
-            name: this.options.fullName,
+            name: this.options.importName,
             sourcemap: true,
         });
 
         let imports: string[] = [];
 
         let minifyOutput;
-
-        const srcpath = path.resolve(this.options.dir, this.options.srcpath);
 
         for (const asset of rollupOutput.output) {
             if (asset.type === 'chunk') {
@@ -200,11 +147,11 @@ export class Project {
                     imports = asset.imports;
 
                     map.sources = map.sources.map(
-                        (file) => this.options.fullName + '/' + path.relative(this.options.dir, file),
+                        (file) => path.join(this.options.importName, path.relative(this.options.dir, file))
                     );
 
                     if (minify) {
-                        progress('Minifying ', this.options.fullName);
+                        output.message('Minifying ', this.options.name);
 
                         minifyOutput = uglifyjs.minify(asset.code, {
                             sourceMap: {
@@ -220,7 +167,7 @@ export class Project {
                         });
                     }
                 } else {
-                    throw new Error(`Project ${this.options.fullName} has multiple chunks`);
+                    throw new Error(`Project ${this.options.name} has multiple chunks`);
                 }
             } else {
                 asset.fileName = path.relative(srcpath, asset.fileName);
@@ -230,35 +177,34 @@ export class Project {
         return {
             imports,
             minify: minifyOutput,
-            rollup: rollupOutput,
-            warnings: warnings.map((m) => m.toString()),
+            rollup: rollupOutput
         };
     }
 
-    private emitChunk(bundle: Bundle, name: string, emitter: BundleEmitter) {
-        for (const output of bundle.rollup.output) {
-            if (output.type === 'chunk') {
+    private emitChunk(bundle: Bundle, dir: string, name: string, output: ProjectOutput) {
+        for (const chunk of bundle.rollup.output) {
+            if (chunk.type === 'chunk') {
                 const mapname = `${name}.js.map`;
                 const ref = `\n//# sourceMappingURL=${mapname}`;
-                emitter(`${name}.js`, output.code + ref);
-                emitter(mapname, JSON.stringify(output.map));
+                output.emit(path.join(dir, `${name}.js`), chunk.code + ref);
+                output.emit(path.join(dir, mapname), JSON.stringify(chunk.map));
             }
         }
     }
 
-    private emitMinify(bundle: Bundle, name: string, emitter: BundleEmitter) {
+    private emitMinify(bundle: Bundle, dir: string, name: string, output: ProjectOutput) {
         if (bundle.minify != null) {
             const mapname = `${name}.min.js.map`;
             const ref = `\n//# sourceMappingURL=${mapname}`;
-            emitter(`${name}.min.js`, bundle.minify.code + ref);
-            emitter(mapname, JSON.stringify(bundle.minify.map));
+            output.emit(path.join(dir,`${name}.min.js`), bundle.minify.code + ref);
+            output.emit(path.join(dir, mapname), JSON.stringify(bundle.minify.map));
         }
     }
 
-    private emitTypings(bundle: Bundle, emitter: BundleEmitter) {
-        for (const output of bundle.rollup.output) {
-            if (output.type === 'asset') {
-                emitter(output.fileName, output.source);
+    private emitAssets(bundle: Bundle, output: ProjectOutput) {
+        for (const asset of bundle.rollup.output) {
+            if (asset.type === 'asset') {
+                output.emit(asset.fileName, asset.source);
             }
         }
     }

@@ -8,6 +8,12 @@ import { Dependency } from './dependency';
 
 // tslint:disable:no-console
 
+function ensurefile(dir: string, ...segments: string[]) {
+    const file = path.resolve(dir, ...segments);
+    fs.mkdirSync(path.dirname(file), { recursive: true });
+    return file;
+}
+
 function hasFiles(dir: string, ...names: string[]) {
     for (const name of names) {
         const file = path.resolve(dir, name);
@@ -48,7 +54,7 @@ export class Nx {
     constructor(public output: string) {
         let dir = process.cwd();
 
-        for (;;) {
+        for (; ;) {
             if (hasFiles(dir, 'workspace.json', 'package.json', 'nx.json')) {
                 this.baseDir = dir;
                 this.package = this.readJSON('package.json');
@@ -89,23 +95,23 @@ export class Nx {
 
     public async bundle(...names: string[]) {
         for (const name of names) {
-            const fullName = `${this.scope}/${name}`;
+            const importName = `${this.scope}/${name}`;
 
             const bar = new cliProgress.SingleBar(
                 {
-                    format: `${fullName}: {message}`,
+                    format: `${importName}: {message}`,
                     fps: 25,
                 },
                 cliProgress.Presets.shades_classic,
             );
 
             const project = new Project({
+                baseDir: this.baseDir,
                 dependency: (dep) => this.dependency(dep),
-                dir: `libs/${name}`,
-                fullName,
+                dir: `${this.baseDir}/libs/${name}`,
+                importName,
                 input: 'index.ts',
                 name,
-                scope: this.scope,
                 srcpath: 'src',
                 tsconfig: 'tsconfig.lib.json',
                 version: this.package.version as string,
@@ -117,14 +123,25 @@ export class Nx {
 
             let n = 1;
 
-            const warnings = await project.bundle(this.output, (...message) => {
-                bar.update(n++, {
-                    message: message.join(' '),
-                });
-            });
+            const output = path.resolve(this.baseDir, this.output, this.scope, name);
 
-            bar.update(n, {
-                message: 'Done',
+            const warnings: string[] = []
+
+            await project.bundle({
+                message: (...text) => {
+                    bar.update(n++, {
+                        message: text.join(' '),
+                    });
+                },
+                warning: (text) => {
+                    warnings.push(text);
+                },
+                emit: (file, content) => {
+                    // console.log(file);
+                    file = path.resolve(output, file);
+                    ensurefile(file);
+                    fs.writeFileSync(file, content, { encoding: 'utf-8' });
+                }
             });
 
             bar.stop();
