@@ -25,11 +25,15 @@ export interface BundleOptions {
     srcpath: string;
 }
 
-
 // tslint:disable-next-line:max-classes-per-file
 export class Bundle {
-
-    public static async build(output: PackageOutput, options: BundleOptions, target: string, format: 'es' | 'umd', minify = false): Promise<Bundle> {
+    public static async build(
+        output: PackageOutput,
+        options: BundleOptions,
+        target: string,
+        format: 'es' | 'umd',
+        minify = false,
+    ): Promise<Bundle> {
         output.message('Bundling', options.name, 'for target', target, 'and format', format);
 
         const srcpath = path.resolve(options.dir, options.srcpath);
@@ -105,8 +109,11 @@ export class Bundle {
         return new Bundle(imports, rollupOutput, minifyOutput);
     }
 
-    private constructor(public imports: string[], private rollupOutput: rollup.RollupOutput, private minifyOutput?: uglifyjs.MinifyOutput) {
-    }
+    private constructor(
+        public imports: string[],
+        private rollupOutput: rollup.RollupOutput,
+        private minifyOutput?: uglifyjs.MinifyOutput,
+    ) {}
 
     emitChunk(name: string, emitter: BundleEmitter) {
         for (const chunk of this.rollupOutput.output) {

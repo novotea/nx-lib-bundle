@@ -4,7 +4,6 @@ import { Dependency } from './dependency';
 import * as path from 'path';
 
 export interface PackageOutput {
-
     message: (...message: string[]) => void;
 
     warning: (text: string) => void;
@@ -12,11 +11,10 @@ export interface PackageOutput {
     emit: (file: string, content: string | Uint8Array) => void;
 
     package: (pkg: any) => void;
-
 }
 
 export class PackageBuilder {
-    constructor(private output: PackageOutput, private dependency: (name: string) => Dependency) { }
+    constructor(private output: PackageOutput, private dependency: (name: string) => Dependency) {}
 
     // tslint:disable-next-line:no-empty
     public async bundle(options: BundleOptions) {
@@ -55,7 +53,7 @@ export class PackageBuilder {
 
         const emitter: BundleEmitter = (name, content) => {
             this.output.emit(path.join('bundles', name), content);
-        }
+        };
 
         es5.emitChunk(options.name + '.umd', emitter);
         es5.emitMinify(options.name + '.umd', emitter);
@@ -69,8 +67,7 @@ export class PackageBuilder {
 
         const emitter: BundleEmitter = (name, content) => {
             this.output.emit(path.join('fesm2015', name), content);
-        }
-
+        };
 
         es2015.emitChunk(options.name, emitter);
     }

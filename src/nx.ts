@@ -74,7 +74,7 @@ export class Nx {
     constructor(public output: string) {
         let dir = process.cwd();
 
-        for (; ;) {
+        for (;;) {
             if (hasFiles(dir, 'workspace.json', 'package.json', 'nx.json')) {
                 this.baseDir = dir;
                 this.package = this.readJSON('package.json');
@@ -124,10 +124,13 @@ export class Nx {
 
         const projectDir = path.join('libs', name);
 
-        const progressBar = new cliProgress.SingleBar({
-            format: `${importName}: {message}`,
-            fps: 25,
-        }, cliProgress.Presets.shades_classic);
+        const progressBar = new cliProgress.SingleBar(
+            {
+                format: `${importName}: {message}`,
+                fps: 25,
+            },
+            cliProgress.Presets.shades_classic,
+        );
 
         progressBar.start(0, 0, {
             message: 'Starting',
@@ -159,7 +162,7 @@ export class Nx {
 
                 const file = path.resolve(outputPath, 'package.json');
                 fs.writeFileSync(file, JSON.stringify(pkg, null, 2), { encoding: 'utf-8' });
-            }
+            },
         };
 
         const project = new PackageBuilder(output, (dep) => this.dependency(dep));
@@ -176,7 +179,7 @@ export class Nx {
         });
 
         progressBar.update(n++, {
-            message: 'Done'
+            message: 'Done',
         });
 
         progressBar.stop();
