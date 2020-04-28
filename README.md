@@ -13,6 +13,8 @@ Upon execution `nx-lib-bundle` will performs the following tasks:
 * Look for `nx.json`, `workspace.json` and `package.json`
 * Build node package files in `dist` with the npmScope and project name
 * Use the version number of `package.json`
+* If a `package-template.json` is found in the workspace root, then its content will be added to the generated `package.json`
+* If a `package-template.json` is found in a library project directory, then its content will be added to the generated `package.json`
 * Build flattenend ES5 and ES2015 versions of the projects in UMD and ES
   formats with sourcemaps included
 * The UMD format also contains a minified version

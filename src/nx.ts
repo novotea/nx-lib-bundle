@@ -1,4 +1,4 @@
-import { Project } from './project';
+import { PackageBuilder, PackageOutput } from './package';
 
 import * as cliProgress from 'cli-progress';
 import * as fs from 'fs';
@@ -36,6 +36,26 @@ function copyEntries(output: any, input: any, key: string) {
     }
 }
 
+function merge(a: any, b: any) {
+    if (b != null) {
+        for (const [key, value] of Object.entries(b)) {
+            if (typeof value === 'object') {
+                if (typeof a[key] === 'object') {
+                    merge(a[key], value);
+                    continue;
+                }
+            } else if (value instanceof Array) {
+                if (a[key] instanceof Array) {
+                    a[key].push(value);
+                    continue;
+                }
+            }
+
+            a[key] = value;
+        }
+    }
+}
+
 export class Nx {
     public scope: string;
 
@@ -54,7 +74,7 @@ export class Nx {
     constructor(public output: string) {
         let dir = process.cwd();
 
-        for (;;) {
+        for (; ;) {
             if (hasFiles(dir, 'workspace.json', 'package.json', 'nx.json')) {
                 this.baseDir = dir;
                 this.package = this.readJSON('package.json');
@@ -90,69 +110,92 @@ export class Nx {
     }
 
     public async bundleAll() {
-        return this.bundle(...this.projects);
+        return this.bundleMany(...this.projects);
     }
 
-    public async bundle(...names: string[]) {
+    public async bundleMany(...names: string[]) {
         for (const name of names) {
-            const importName = `${this.scope}/${name}`;
+            await this.bundle(name);
+        }
+    }
 
-            const bar = new cliProgress.SingleBar(
-                {
-                    format: `${importName}: {message}`,
-                    fps: 25,
-                },
-                cliProgress.Presets.shades_classic,
-            );
+    public async bundle(name: string) {
+        const importName = `${this.scope}/${name}`;
 
-            bar.start(0, 0, {
-                message: 'Starting',
-            });
+        const projectDir = path.join('libs', name);
 
-            let n = 1;
+        const progressBar = new cliProgress.SingleBar({
+            format: `${importName}: {message}`,
+            fps: 25,
+        }, cliProgress.Presets.shades_classic);
 
-            const output = path.resolve(this.baseDir, this.output, this.scope, name);
+        progressBar.start(0, 0, {
+            message: 'Starting',
+        });
 
-            const warnings: string[] = [];
+        const outputPath = path.resolve(this.baseDir, this.output, this.scope, name);
 
-            const project = new Project({
-                message: (...text) => {
-                    bar.update(n++, {
-                        message: text.join(' '),
-                    });
-                },
-                warning: (text) => {
-                    warnings.push(text);
-                },
-                emit: (file, content) => {
-                    file = path.resolve(output, file);
-                    ensurefile(file);
-                    fs.writeFileSync(file, content, { encoding: 'utf-8' });
-                },
-            }, (dep) => this.dependency(dep));
+        const warnings: string[] = [];
 
-            await project.bundle({
-                baseDir: this.baseDir,
-                dir: `${this.baseDir}/libs/${name}`,
-                importName,
-                input: 'index.ts',
-                name,
-                srcpath: 'src',
-                tsconfig: 'tsconfig.lib.json',
-                version: this.package.version as string,
-            });
+        let n = 1;
 
-            bar.stop();
+        const output: PackageOutput = {
+            message: (...text) => {
+                progressBar.update(n++, {
+                    message: text.join(' '),
+                });
+            },
+            warning: (text) => {
+                warnings.push(text);
+            },
+            emit: (file, content) => {
+                file = path.resolve(outputPath, file);
+                ensurefile(file);
+                fs.writeFileSync(file, content, { encoding: 'utf-8' });
+            },
+            package: (pkg) => {
+                merge(pkg, this.tryJSON('package-template.json'));
+                merge(pkg, this.tryJSON(path.join(projectDir, 'package-template.json')));
 
-            if (warnings.length !== 0) {
-                console.log(`${warnings.length} warning(s):`);
-                warnings.forEach((w) => console.log('  ', w));
+                const file = path.resolve(outputPath, 'package.json');
+                fs.writeFileSync(file, JSON.stringify(pkg, null, 2), { encoding: 'utf-8' });
             }
+        };
+
+        const project = new PackageBuilder(output, (dep) => this.dependency(dep));
+
+        await project.bundle({
+            baseDir: this.baseDir,
+            dir: path.join(this.baseDir, projectDir),
+            importName,
+            input: 'index.ts',
+            name,
+            srcpath: 'src',
+            tsconfig: 'tsconfig.lib.json',
+            version: this.package.version as string,
+        });
+
+        progressBar.stop();
+
+        if (warnings.length !== 0) {
+            console.log(`${warnings.length} warning(s):`);
+            warnings.forEach((w) => console.log('  ', w));
         }
     }
 
     public dependency(name: string) {
         return this.dependencies[name];
+    }
+
+    private tryJSON(dir: string) {
+        const file = path.resolve(this.baseDir, dir);
+        
+        if (fs.existsSync(file)) {
+            const json = fs.readFileSync(file, 'utf-8');
+            return JSON.parse(json);
+        }
+
+        return null;
     }
 
     private readJSON(dir: string) {

@@ -1,4 +1,4 @@
-import { ProjectOutput } from './project';
+import { PackageOutput } from './package';
 
 import * as typescript from '@rollup/plugin-typescript';
 import * as path from 'path';
@@ -29,7 +29,7 @@ export interface BundleOptions {
 // tslint:disable-next-line:max-classes-per-file
 export class Bundle {
 
-    public static async build(output: ProjectOutput, options: BundleOptions, target: string, format: 'es' | 'umd', minify = false): Promise<Bundle> {
+    public static async build(output: PackageOutput, options: BundleOptions, target: string, format: 'es' | 'umd', minify = false): Promise<Bundle> {
         output.message('Bundling', options.name, 'for target', target, 'and format', format);
 
         const srcpath = path.resolve(options.dir, options.srcpath);
@@ -39,7 +39,7 @@ export class Bundle {
                 return !(id.startsWith('.') || id.startsWith('/') || id === '\0typescript-helpers');
             },
             input: path.resolve(options.dir, options.srcpath, options.input),
-            onwarn: (warning) => output.warning(warning.message),
+            onwarn: (warning) => output.warning(`${options.importName}(${target}/${format}): ${warning.message}`),
             plugins: [
                 (typescript as any)({
                     declaration: true,

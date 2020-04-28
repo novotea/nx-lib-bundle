@@ -33,7 +33,7 @@ yargs
             });
         },
         (argv) => {
-            return new Nx(argv.output).bundle(...(argv.projects as string[]));
+            return new Nx(argv.output).bundleMany(...(argv.projects as string[]));
         },
     )
     .usage('$0 <cmd> [args]')
