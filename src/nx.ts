@@ -105,18 +105,6 @@ export class Nx {
                 cliProgress.Presets.shades_classic,
             );
 
-            const project = new Project({
-                baseDir: this.baseDir,
-                dependency: (dep) => this.dependency(dep),
-                dir: `${this.baseDir}/libs/${name}`,
-                importName,
-                input: 'index.ts',
-                name,
-                srcpath: 'src',
-                tsconfig: 'tsconfig.lib.json',
-                version: this.package.version as string,
-            });
-
             bar.start(0, 0, {
                 message: 'Starting',
             });
@@ -127,7 +115,7 @@ export class Nx {
 
             const warnings: string[] = [];
 
-            await project.bundle({
+            const project = new Project({
                 message: (...text) => {
                     bar.update(n++, {
                         message: text.join(' '),
@@ -137,11 +125,21 @@ export class Nx {
                     warnings.push(text);
                 },
                 emit: (file, content) => {
-                    // console.log(file);
                     file = path.resolve(output, file);
                     ensurefile(file);
                     fs.writeFileSync(file, content, { encoding: 'utf-8' });
                 },
+            }, (dep) => this.dependency(dep));
+
+            await project.bundle({
+                baseDir: this.baseDir,
+                dir: `${this.baseDir}/libs/${name}`,
+                importName,
+                input: 'index.ts',
+                name,
+                srcpath: 'src',
+                tsconfig: 'tsconfig.lib.json',
+                version: this.package.version as string,
             });
 
             bar.stop();
