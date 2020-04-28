@@ -175,6 +175,10 @@ export class Nx {
             version: this.package.version as string,
         });
 
+        progressBar.update(n++, {
+            message: 'Done'
+        });
+
         progressBar.stop();
 
         if (warnings.length !== 0) {
@@ -189,7 +193,7 @@ export class Nx {
 
     private tryJSON(dir: string) {
         const file = path.resolve(this.baseDir, dir);
-        
+
         if (fs.existsSync(file)) {
             const json = fs.readFileSync(file, 'utf-8');
             return JSON.parse(json);

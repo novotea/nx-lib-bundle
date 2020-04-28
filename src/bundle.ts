@@ -53,7 +53,7 @@ export class Bundle {
             ],
         });
 
-        output.message('Generating code for ', options.name, 'for target', target, 'and format', format);
+        output.message('Generating code for', options.name, 'for target', target, 'and format', format);
 
         const rollupOutput = await rollupInput.generate({
             dir: '.',
