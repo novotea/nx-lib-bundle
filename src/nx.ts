@@ -73,13 +73,19 @@ export class Nx {
 
     constructor(public output: string) {
         let dir = process.cwd();
+        let projectType = undefined
 
         for (;;) {
             if (hasFiles(dir, 'workspace.json', 'package.json', 'nx.json')) {
+                projectType = 'workspace'
+            } else if (hasFiles(dir, 'angular.json', 'package.json', 'nx.json')) {
+                projectType = 'angular'
+            }
+            if (projectType) {
                 this.baseDir = dir;
                 this.package = this.readJSON('package.json');
                 this.nx = this.readJSON('nx.json');
-                this.workspace = this.readJSON('workspace.json');
+                this.workspace = this.readJSON(projectType + '.json');
                 this.scope = ('@' + this.nx.npmScope) as string;
 
                 copyEntries(this.dependencies, this.package, 'peerDependencies');

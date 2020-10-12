@@ -10,7 +10,7 @@ nx-lib-bundle is a minimalistic attempt at bundling NX workspace libraries in in
 
 Upon execution `nx-lib-bundle` will performs the following tasks:
 
-* Look for `nx.json`, `workspace.json` and `package.json`
+* Look for `workspace.json` or `angular.json` and `nx.json` , `package.json`
 * Build node package files in `dist` with the npmScope and project name
 * Use the version number of `package.json`
 * If a `package-template.json` is found in the workspace root, then its content will be added to the generated `package.json`
