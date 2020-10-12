@@ -78,7 +78,7 @@ export class Nx {
         for (;;) {
             if (hasFiles(dir, 'workspace.json', 'package.json', 'nx.json')) {
                 projectType = 'workspace'
-            } else             if (hasFiles(dir, 'angular.json', 'package.json', 'nx.json')) {
+            } else if (hasFiles(dir, 'angular.json', 'package.json', 'nx.json')) {
                 projectType = 'angular'
             }
             if (projectType) {
