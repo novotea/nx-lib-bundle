@@ -122,9 +122,9 @@ export class Nx {
     public async bundle(name: string) {
         const importName = `${this.scope}/${name}`;
 
-        const path = this.nx.workspaceLayout.libsDir? this.nx.workspaceLayout.libsDir : 'libs';
+        const libsDir = this.nx.workspaceLayout.libsDir? this.nx.workspaceLayout.libsDir : 'libs';
 
-        const projectDir =  path.join(path, name);
+        const projectDir =  path.join(libsDir, name);
         
         const progressBar = new cliProgress.SingleBar(
             {
